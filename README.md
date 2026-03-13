@@ -38,6 +38,17 @@ That script:
 - activates it
 - installs `blendcorpus` editable into that environment
 
+The shell wrappers temporarily disable `set -u` while activating the virtual
+environment so activation scripts do not fail on unset shell-specific variables
+such as `ZSH_EVAL_CONTEXT`.
+
+It requires Python 3.8 or newer. If `python3` on your system is older, set a
+newer interpreter explicitly:
+
+```bash
+PYTHON_BIN=python3.10 bash /path/to/blendcorpus_tests/setup.sh
+```
+
 Afterward:
 
 ```bash
