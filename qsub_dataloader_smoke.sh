@@ -6,8 +6,6 @@
 #PBS -A datascience
 #PBS -j oe
 
-set -euo pipefail
-
 cd $PBS_O_WORKDIR
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
