@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create blendcorpus smoke-test datasets in serial or with mpi4py."""
+"""Create blendcorpus smoke-test datasets with mpi4py."""
 
 from __future__ import annotations
 
@@ -28,11 +28,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--num-files-per-corpus", type=int, default=1)
     parser.add_argument("--num-docs", type=int, default=524032)
     parser.add_argument("--seq-length", type=int, default=2048)
-    parser.add_argument(
-        "--mpi",
-        action="store_true",
-        help="Distribute file generation across MPI ranks and have rank 0 write the file list.",
-    )
     return parser.parse_args()
 
 
@@ -104,23 +99,6 @@ def write_file_list(output_dir: Path, entries: list[tuple[int, int, str]]) -> Pa
     return file_list
 
 
-def run_serial(args: argparse.Namespace) -> None:
-    entries = []
-    for corpus_idx, file_idx in build_tasks(args.num_corpora, args.num_files_per_corpus):
-        entries.append(
-            generate_one_file(
-                output_dir=args.output_dir,
-                prefix_base=args.prefix,
-                corpus_name_base=args.corpus_name,
-                corpus_idx=corpus_idx,
-                file_idx=file_idx,
-                num_docs=args.num_docs,
-                seq_length=args.seq_length,
-            )
-        )
-    write_file_list(args.output_dir, entries)
-
-
 def run_mpi(args: argparse.Namespace) -> None:
     from mpi4py import MPI
 
@@ -155,11 +133,7 @@ def main() -> None:
     args = parse_args()
     args.output_dir = args.output_dir.resolve()
     args.output_dir.mkdir(parents=True, exist_ok=True)
-
-    if args.mpi:
-        run_mpi(args)
-    else:
-        run_serial(args)
+    run_mpi(args)
 
 
 if __name__ == "__main__":

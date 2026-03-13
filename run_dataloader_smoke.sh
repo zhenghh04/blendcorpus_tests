@@ -14,8 +14,8 @@ export SEQ_LENGTH="${SEQ_LENGTH:-2048}"
 export MICRO_BATCH_SIZE="${MICRO_BATCH_SIZE:-4}"
 export TRAIN_ITERS="${TRAIN_ITERS:-100}"
 export NUM_WORKERS="${NUM_WORKERS:-2}"
-export NUM_CORPORA="${NUM_CORPORA:-4}"
-export NUM_FILES_PER_CORPUS="${NUM_FILES_PER_CORPUS:-8}"
+export NUM_CORPORA="${NUM_CORPORA:-2}"
+export NUM_FILES_PER_CORPUS="${NUM_FILES_PER_CORPUS:-2}"
 export NUM_DOCS="${NUM_DOCS:-524032}"
 export WORK_ROOT="${WORK_ROOT:-$PWD/blendcorpus_aurora_smoke}"
 export TRACE_DIR="${TRACE_DIR:-$WORK_ROOT/trace}"
@@ -44,6 +44,7 @@ mpiexec -n $NNODES --ppn 1  \
 
 make -C "$BLENDCORPUS_REPO/blendcorpus/data"
 
+export PYTHONPATH="$BLENDCORPUS_REPO:${PYTHONPATH:-}"
 mkdir -p "$TRACE_DIR"
 
 NRANKS=$((NNODES * PPN))

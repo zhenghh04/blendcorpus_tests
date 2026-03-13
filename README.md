@@ -20,8 +20,7 @@ For the dataloader test, `GLOBAL_BATCH_SIZE` defaults to
 
 Dataset creation is handled by a single entrypoint:
 
-- `create_dataset.py --mpi` for MPI-distributed generation
-- `create_dataset.py` for serial generation
+- `create_dataset.py`
 
 ## Quick Start
 
@@ -89,6 +88,10 @@ qsub -A <project> /path/to/blendcorpus_tests/qsub_dataloader_smoke.sh
 The PBS wrapper loads `frameworks`, activates `BLENDCORPUS_VENV` when set, and
 then runs the external launcher.
 
+The launcher also exports `PYTHONPATH=$BLENDCORPUS_REPO` before starting the MPI
+test ranks so `blendcorpus` is importable even when editable-install metadata is
+not picked up cleanly by `mpiexec`.
+
 ## Run Inside an Existing Allocation
 
 ```bash
@@ -116,11 +119,11 @@ WORK_ROOT=$PWD/blendcorpus_aurora_smoke \
 bash /path/to/blendcorpus_tests/run_dataloader_smoke.sh
 ```
 
-The launcher currently generates the `.bin/.idx` fixtures with MPI using one
-rank per node:
+The launcher always generates the `.bin/.idx` fixtures with MPI using one rank
+per node:
 
 ```bash
-mpiexec -n $NNODES --ppn 1 python3 ./create_dataset.py --mpi --output-dir ...
+mpiexec -n $NNODES --ppn 1 python3 ./create_dataset.py --output-dir ...
 ```
 
 For MPI launchers that do not support Aurora-specific flags such as `--ppn` or
