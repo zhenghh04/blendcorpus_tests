@@ -9,24 +9,20 @@ if [[ ! -d "$BLENDCORPUS_REPO" ]]; then
   exit 1
 fi
 
-export PPN="${PPN:-1}"
+export PPN="${PPN:-12}"
 export SEQ_LENGTH="${SEQ_LENGTH:-2048}"
 export MICRO_BATCH_SIZE="${MICRO_BATCH_SIZE:-4}"
-export TRAIN_ITERS="${TRAIN_ITERS:-4}"
-export NUM_WORKERS="${NUM_WORKERS:-0}"
-export NUM_CORPORA="${NUM_CORPORA:-1}"
-export NUM_FILES_PER_CORPUS="${NUM_FILES_PER_CORPUS:-1}"
+export TRAIN_ITERS="${TRAIN_ITERS:-100}"
+export NUM_WORKERS="${NUM_WORKERS:-2}"
+export NUM_CORPORA="${NUM_CORPORA:-4}"
+export NUM_FILES_PER_CORPUS="${NUM_FILES_PER_CORPUS:-8}"
 export NUM_DOCS="${NUM_DOCS:-524032}"
 export WORK_ROOT="${WORK_ROOT:-$PWD/blendcorpus_aurora_smoke}"
 export TRACE_DIR="${TRACE_DIR:-$WORK_ROOT/trace}"
 export FIXTURE_DIR="${FIXTURE_DIR:-$WORK_ROOT/testdata}"
 export MPIEXEC_BIN="${MPIEXEC_BIN:-mpiexec}"
-export GENERATE_FIXTURE_WITH_MPI="${GENERATE_FIXTURE_WITH_MPI:-1}"
 if [[ -z "${MPIEXEC_ARGS+x}" ]]; then
   export MPIEXEC_ARGS="--ppn $PPN --cpu-bind depth -d 1"
-fi
-if [[ -z "${FIXTURE_MPI_ARGS+x}" ]]; then
-  export FIXTURE_MPI_ARGS="$MPIEXEC_ARGS"
 fi
 
 if [[ -n "${PBS_NODEFILE:-}" && -f "${PBS_NODEFILE}" ]]; then
@@ -37,32 +33,23 @@ fi
 
 export FIXTURE_MPI_RANKS="${FIXTURE_MPI_RANKS:-$((NNODES * PPN))}"
 
-if [[ "$GENERATE_FIXTURE_WITH_MPI" == "0" ]]; then
-  python3 "$SCRIPT_DIR/create_dataset.py" \
-    --output-dir "$FIXTURE_DIR" \
-    --num-corpora "$NUM_CORPORA" \
-    --num-files-per-corpus "$NUM_FILES_PER_CORPUS" \
-    --seq-length "$SEQ_LENGTH" \
-    --num-docs "$NUM_DOCS"
-else
-  "$MPIEXEC_BIN" -n "$FIXTURE_MPI_RANKS" $FIXTURE_MPI_ARGS \
-    python3 "$SCRIPT_DIR/create_dataset.py" --mpi \
+# Using MPI to create the dataset in parallel, 1 rank per node 
+mpiexec -n $NNODES --ppn 1  \
+    python3 "$SCRIPT_DIR/create_dataset.py" \
       --output-dir "$FIXTURE_DIR" \
       --num-corpora "$NUM_CORPORA" \
       --num-files-per-corpus "$NUM_FILES_PER_CORPUS" \
       --seq-length "$SEQ_LENGTH" \
       --num-docs "$NUM_DOCS"
-fi
 
 make -C "$BLENDCORPUS_REPO/blendcorpus/data"
 
-export PYTHONPATH="$BLENDCORPUS_REPO:${PYTHONPATH:-}"
 mkdir -p "$TRACE_DIR"
 
 NRANKS=$((NNODES * PPN))
 export GLOBAL_BATCH_SIZE="${GLOBAL_BATCH_SIZE:-$((MICRO_BATCH_SIZE * NRANKS))}"
 
-"$MPIEXEC_BIN" -n "$NRANKS" $MPIEXEC_ARGS \
+mpiexec -n "$NRANKS" $MPIEXEC_ARGS \
   "$BLENDCORPUS_REPO/utils/launcher.sh" \
   python3 "$BLENDCORPUS_REPO/tests/test_dataloader.py" \
     --trace-dir "$TRACE_DIR" \

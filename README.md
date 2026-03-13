@@ -1,13 +1,13 @@
-# BlendCorpus Aurora Smoke Test
+# BlendCorpus Test Harness
 
 This setup lives outside the `blendcorpus` repository so the project source stays unchanged.
 
 ## What it does
 
-It drives an existing `blendcorpus` checkout on Aurora by:
+It drives an existing `blendcorpus` checkout by:
 
-- generating a tiny synthetic mmap dataset,
-- generating those fixtures in parallel with `mpi4py` by default,
+- generating a synthetic mmap dataset,
+- generating those fixtures with `mpi4py`,
 - building `blendcorpus/data/helpers`,
 - running `tests/test_dataloader.py` through `utils/launcher.sh`,
 - writing perf traces into a separate working directory.
@@ -20,20 +20,20 @@ For the dataloader test, `GLOBAL_BATCH_SIZE` defaults to
 
 Dataset creation is handled by a single entrypoint:
 
-- `create_dataset.py --mpi` for MPI-distributed generation by default
-- `create_dataset.py` for explicit serial fallback
+- `create_dataset.py --mpi` for MPI-distributed generation
+- `create_dataset.py` for serial generation
 
 ## Quick Start
 
 If you want this directory to prepare its own checkout and virtual environment:
 
 ```bash
-bash /path/to/blendcorpus_aurora_setup/setup.sh
+bash /path/to/blendcorpus_tests/setup.sh
 ```
 
 That script:
 
-- clones `https://github.com/zhenghh04/blendcorpus.git` into `./blendcorpus`
+- clones `https://github.com/saforem2/blendcorpus.git` into `./blendcorpus`
 - creates `./venv`
 - activates it
 - installs `blendcorpus` editable into that environment
@@ -41,9 +41,9 @@ That script:
 Afterward:
 
 ```bash
-source /path/to/blendcorpus_aurora_setup/venv/bin/activate
-export BLENDCORPUS_REPO=/path/to/blendcorpus_aurora_setup/blendcorpus
-export BLENDCORPUS_VENV=/path/to/blendcorpus_aurora_setup/venv
+source /path/to/blendcorpus_tests/venv/bin/activate
+export BLENDCORPUS_REPO=/path/to/blendcorpus_tests/blendcorpus
+export BLENDCORPUS_VENV=/path/to/blendcorpus_tests/venv
 ```
 
 ## Required Environment
@@ -54,7 +54,7 @@ Set the repo path before running:
 export BLENDCORPUS_REPO=/path/to/blendcorpus
 ```
 
-If you have a dedicated virtual environment on Aurora, activate it or pass:
+If you have a dedicated virtual environment, activate it or pass:
 
 ```bash
 export BLENDCORPUS_VENV=/path/to/.venv
@@ -72,62 +72,57 @@ export BLENDCORPUS_VENV=/path/to/.venv
 Use your project explicitly at submit time:
 
 ```bash
-qsub -A <project> /path/to/blendcorpus_aurora_setup/qsub_dataloader_smoke.sh
+qsub -A <project> /path/to/blendcorpus_tests/qsub_dataloader_smoke.sh
 ```
 
-The PBS wrapper loads `frameworks`, keeps MPI fixture generation enabled by
-default, and then runs the external launcher.
+The PBS wrapper loads `frameworks`, activates `BLENDCORPUS_VENV` when set, and
+then runs the external launcher.
 
 ## Run Inside an Existing Allocation
 
 ```bash
 export BLENDCORPUS_REPO=/path/to/blendcorpus
-bash /path/to/blendcorpus_aurora_setup/run_dataloader_smoke.sh
+bash /path/to/blendcorpus_tests/run_dataloader_smoke.sh
 ```
 
 ## Defaults
 
+- `PPN=12`
 - `SEQ_LENGTH=2048`
-- `NUM_DOCS=524032`
-- `NUM_CORPORA=1`
-- `NUM_FILES_PER_CORPUS=1`
 - `MICRO_BATCH_SIZE=4`
+- `TRAIN_ITERS=100`
+- `NUM_WORKERS=2`
+- `NUM_CORPORA=4`
+- `NUM_FILES_PER_CORPUS=8`
+- `NUM_DOCS=524032`
 - `GLOBAL_BATCH_SIZE=MICRO_BATCH_SIZE * NRANKS`
-- `GENERATE_FIXTURE_WITH_MPI=1`
 
 ## Useful Overrides
 
 ```bash
 PPN=2 TRAIN_ITERS=8 MICRO_BATCH_SIZE=4 SEQ_LENGTH=2048 NUM_CORPORA=2 NUM_FILES_PER_CORPUS=1 \
 WORK_ROOT=$PWD/blendcorpus_aurora_smoke \
-bash /path/to/blendcorpus_aurora_setup/run_dataloader_smoke.sh
+bash /path/to/blendcorpus_tests/run_dataloader_smoke.sh
 ```
 
-By default the `.bin/.idx` fixtures are generated with MPI first. You can set
-the fixture rank count explicitly:
+The launcher currently generates the `.bin/.idx` fixtures with MPI using one
+rank per node:
 
 ```bash
-FIXTURE_MPI_RANKS=4 \
-bash /path/to/blendcorpus_aurora_setup/run_dataloader_smoke.sh
+mpiexec -n $NNODES --ppn 1 python3 ./create_dataset.py --mpi --output-dir ...
 ```
-
-Set `GENERATE_FIXTURE_WITH_MPI=0` if you want the serial fallback instead.
-
-The MPI fixture generation reuses `MPIEXEC_ARGS` by default. Override
-`FIXTURE_MPI_ARGS` separately if you want different launcher flags for the
-generation phase.
 
 For MPI launchers that do not support Aurora-specific flags such as `--ppn` or
 `--cpu-bind`, override them explicitly:
 
 ```bash
-MPIEXEC_ARGS="" bash /path/to/blendcorpus_aurora_setup/run_dataloader_smoke.sh
+MPIEXEC_ARGS="" bash /path/to/blendcorpus_tests/run_dataloader_smoke.sh
 ```
 
 If you want to override the computed global batch size explicitly:
 
 ```bash
-GLOBAL_BATCH_SIZE=32 bash /path/to/blendcorpus_aurora_setup/run_dataloader_smoke.sh
+GLOBAL_BATCH_SIZE=32 bash /path/to/blendcorpus_tests/run_dataloader_smoke.sh
 ```
 
 ## Outputs
@@ -141,4 +136,3 @@ The external setup writes:
 - `trace/trace-<rank>-of-<world>.pfw`
 
 under `${WORK_ROOT}`, which defaults to `./blendcorpus_aurora_smoke`.
-# blendcorpus_tests
