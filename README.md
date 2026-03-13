@@ -141,3 +141,4 @@ The external setup writes:
 - `trace/trace-<rank>-of-<world>.pfw`
 
 under `${WORK_ROOT}`, which defaults to `./blendcorpus_aurora_smoke`.
+# blendcorpus_tests
