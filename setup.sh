@@ -34,7 +34,7 @@ else
   git clone "$REPO_URL" "$REPO_DIR"
 fi
 
-"$PYTHON_BIN" -m venv "$VENV_DIR"
+"$PYTHON_BIN" -m venv --system-site-packages "$VENV_DIR"
 set +u
 source "$VENV_DIR/bin/activate"
 set -u
