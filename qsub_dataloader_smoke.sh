@@ -11,7 +11,7 @@ cd $PBS_O_WORKDIR
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
 module load frameworks
-export BLENDCORPUS_REPO=./
+export BLENDCORPUS_REPO="${BLENDCORPUS_REPO:-$SCRIPT_DIR/blendcorpus}"
 if [[ -n "${BLENDCORPUS_VENV:-}" ]]; then
   set +u
   source "${BLENDCORPUS_VENV}/bin/activate"
